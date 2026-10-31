@@ -1,0 +1,62 @@
+name: Build Mamang Billing APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'MamangBilling-Android-Project-v1.2.1-GitHubBuild.zip'
+      - '.github/workflows/build-mamang-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Extract Android project
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP="MamangBilling-Android-Project-v1.2.1-GitHubBuild.zip"
+          test -f "$ZIP" || { echo "File $ZIP tidak ditemukan di root repository."; exit 1; }
+          mkdir -p extracted
+          unzip -q "$ZIP" -d extracted
+          SETTINGS="$(find extracted -name settings.gradle -o -name settings.gradle.kts | head -n 1)"
+          test -n "$SETTINGS" || { echo "settings.gradle tidak ditemukan di dalam ZIP."; find extracted -maxdepth 4 -type f | head -50; exit 1; }
+          PROJECT_DIR="$(dirname "$SETTINGS")"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Proyek Android: $PROJECT_DIR"
+          test -f "$PROJECT_DIR/app/build.gradle" -o -f "$PROJECT_DIR/app/build.gradle.kts"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build debug APK
+        run: gradle --no-daemon -p "$PROJECT_DIR" assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MamangBilling-APK
+          path: '**/build/outputs/apk/debug/*.apk'
+          if-no-files-found: error
+          retention-days: 14
