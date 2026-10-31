@@ -55,3 +55,6 @@ jobs:
       - name: Enable AndroidX
         run: |
           printf '\nandroid.useAndroidX=true\nandroid.enableJetifier=true\n' >> "$PROJECT_DIR/gradle.properties"
+      - name: Enable AndroidX
+        run: |
+          printf '\nandroid.useAndroidX=true\nandroid.enableJetifier=true\n' >> "$PROJECT_DIR/gradle.properties"
