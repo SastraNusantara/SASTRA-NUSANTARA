@@ -52,3 +52,6 @@ jobs:
           name: MamangBilling-APK
           path: '**/build/outputs/apk/debug/*.apk'
           if-no-files-found: error
+      - name: Enable AndroidX
+        run: |
+          printf '\nandroid.useAndroidX=true\nandroid.enableJetifier=true\n' >> "$PROJECT_DIR/gradle.properties"
