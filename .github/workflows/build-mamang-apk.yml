@@ -1,60 +1,32 @@
-name: Build Mamang Billing APK
-
-on:
-  workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'MamangBilling-Android-Project-v1.2.1-GitHubBuild.zip'
-      - '.github/workflows/build-mamang-apk.yml'
-
-permissions:
-  contents: read
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Extract Android project
+- name: Extract Android project
+        shell: bash
         run: |
+          set -e
+          echo "=== File di repository ==="
+          ls -lah
+
           mkdir -p extracted
-          unzip -q billing-wifi-mamang-koneksi-github-actions.zip -d extracted
-          echo "PROJECT_DIR=$(dirname "$(find extracted -name settings.gradle -o -name settings.gradle.kts | head -1)")" >> "$GITHUB_ENV"
-      - name: Enable AndroidX
-        run: |
-          printf '\nandroid.useAndroidX=true\nandroid.enableJetifier=true\n' >> "$PROJECT_DIR/gradle.properties"
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+          ZIP_FILE="$(find . -maxdepth 1 -type f -iname '*.zip' | head -n 1)"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
-        with:
-          packages: platform-tools
+          if [ -z "$ZIP_FILE" ]; then
+            echo "::error::Tidak ditemukan file ZIP di folder utama repository."
+            exit 1
+          fi
 
-      - name: Install Android SDK
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          echo "ZIP ditemukan: $ZIP_FILE"
+          unzip -t "$ZIP_FILE"
+          unzip -o "$ZIP_FILE" -d extracted
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
+          echo "=== Mencari file konfigurasi Gradle ==="
+          SETTINGS_FILE="$(find extracted -type f \( -name settings.gradle -o -name settings.gradle.kts \) | head -n 1)"
 
-      - name: Build APK
-        run: gradle --no-daemon -p "$PROJECT_DIR" assembleDebug
+          if [ -z "$SETTINGS_FILE" ]; then
+            echo "::error::ZIP berhasil dibuka, tetapi settings.gradle atau settings.gradle.kts tidak ditemukan."
+            find extracted -maxdepth 4 -type f | head -n 80
+            exit 1
+          fi
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: MamangBilling-APK
-          path: '**/build/outputs/apk/debug/*.apk'
-          if-no-files-found: error
-      - name: Enable AndroidX
-        run: |
-          printf '\nandroid.useAndroidX=true\nandroid.enableJetifier=true\n' >> "$PROJECT_DIR/gradle.properties"
+          PROJECT_DIR="$(dirname "$SETTINGS_FILE")"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+          echo "Proyek ditemukan di: $PROJECT_DIR"
