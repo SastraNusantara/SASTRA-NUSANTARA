@@ -21,9 +21,8 @@ jobs:
       - name: Extract Android project
         run: |
           mkdir -p extracted
-          unzip -q MamangBilling-Android-Project-v1.2.1-GitHubBuild.zip -d extracted
-          echo "PROJECT_DIR=$(dirname "$(find extracted -name settings.gradle | head -1)")" >> "$GITHUB_ENV"
-
+          unzip -q billing-wifi-mamang-koneksi-github-actions.zip -d extracted
+          echo "PROJECT_DIR=$(dirname "$(find extracted -name settings.gradle -o -name settings.gradle.kts | head -1)")" >> "$GITHUB_ENV"
       - name: Enable AndroidX
         run: |
           printf '\nandroid.useAndroidX=true\nandroid.enableJetifier=true\n' >> "$PROJECT_DIR/gradle.properties"
